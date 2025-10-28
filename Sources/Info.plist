@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleDisplayName</key>
+    <string>Deep Uninstaller</string>
+    <key>CFBundleExecutable</key>
+    <string>DeepUninstaller</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.deepuninstaller.macos</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>DeepUninstaller</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2025 Yuze Pan. All rights reserved.</string>
+    <key>NSSystemAdministrationUsageDescription</key>
+    <string>Deep Uninstaller needs administrator access to delete application files from protected system directories.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Deep Uninstaller needs to monitor file system events to track application file changes.</string>
+</dict>
+</plist>
