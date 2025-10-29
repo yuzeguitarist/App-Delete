@@ -1,5 +1,26 @@
 import Foundation
 import Combine
+import os.log
+
+struct UninstallError: Error, LocalizedError {
+    let failedFiles: [(path: String, error: Error)]
+    let successCount: Int
+    
+    var errorDescription: String? {
+        "Failed to delete \(failedFiles.count) files. Successfully deleted \(successCount) files."
+    }
+    
+    var detailedDescription: String {
+        var details = "Successfully deleted \(successCount) files.\n\nFailed to delete \(failedFiles.count) files:\n\n"
+        for (path, error) in failedFiles.prefix(10) {
+            details += "• \(path)\n  Error: \(error.localizedDescription)\n\n"
+        }
+        if failedFiles.count > 10 {
+            details += "... and \(failedFiles.count - 10) more files."
+        }
+        return details
+    }
+}
 
 class MonitoringSessionManager: ObservableObject {
     @Published var sessions: [MonitoringSession] = []
@@ -9,38 +30,68 @@ class MonitoringSessionManager: ObservableObject {
     private let storageManager = StorageManager()
     private var fileChangeQueue = Set<String>()
     private var saveTimer: Timer?
+    private let syncQueue = DispatchQueue(label: "com.deepuninstaller.sessionmanager", qos: .userInitiated)
+    private let logger = Logger(subsystem: "com.deepuninstaller.app", category: "MonitoringSessionManager")
     
     init() {
         loadSessions()
     }
     
-    func startNewSession(name: String) {
+    func startNewSession(name: String, completion: @escaping (Result<Void, Error>) -> Void) {
         stopActiveSession()
         
         let newSession = MonitoringSession(name: name)
-        activeSession = newSession
-        sessions.insert(newSession, at: 0)
         
-        fsEventsMonitor = FSEventsMonitor()
-        fsEventsMonitor?.startMonitoring { [weak self] path, flags in
-            self?.handleFileChange(path: path, flags: flags)
+        syncQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            self.fileChangeQueue.removeAll()
+            
+            DispatchQueue.main.async {
+                self.activeSession = newSession
+                self.sessions.insert(newSession, at: 0)
+            }
+            
+            let monitor = FSEventsMonitor()
+            do {
+                try monitor.startMonitoring { [weak self] path, flags in
+                    self?.handleFileChange(path: path, flags: flags)
+                }
+                
+                DispatchQueue.main.async {
+                    self.fsEventsMonitor = monitor
+                    
+                    self.saveTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+                        self?.saveActiveSession()
+                    }
+                    
+                    self.saveSessions()
+                    self.logger.info("Session '\(name)' started successfully")
+                    completion(.success(()))
+                }
+            } catch {
+                self.logger.error("Failed to start monitoring: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self.activeSession = nil
+                    self.sessions.removeAll { $0.id == newSession.id }
+                    completion(.failure(error))
+                }
+            }
         }
-        
-        saveTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            self?.saveActiveSession()
-        }
-        
-        saveSessions()
     }
     
     func stopActiveSession() {
         guard var session = activeSession else { return }
         
+        saveTimer?.invalidate()
+        saveTimer = nil
+        
         fsEventsMonitor?.stopMonitoring()
         fsEventsMonitor = nil
         
-        saveTimer?.invalidate()
-        saveTimer = nil
+        syncQueue.sync {
+            saveActiveSessionInternal()
+        }
         
         session.isActive = false
         session.endDate = Date()
@@ -51,6 +102,7 @@ class MonitoringSessionManager: ObservableObject {
         
         activeSession = nil
         saveSessions()
+        logger.info("Session '\(session.name)' stopped")
     }
     
     func deleteSession(_ session: MonitoringSession) {
@@ -59,9 +111,13 @@ class MonitoringSessionManager: ObservableObject {
     }
     
     func uninstallSession(_ session: MonitoringSession, completion: @escaping (Result<Int, Error>) -> Void) {
-        DispatchQueue.global(qos: .userInitiated).async {
+        logger.info("Starting uninstall for session '\(session.name)' with \(session.monitoredFiles.count) files")
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            
             var deletedCount = 0
-            var lastError: Error?
+            var failedFiles: [(path: String, error: Error)] = []
             
             let sortedFiles = session.monitoredFiles.sorted { file1, file2 in
                 file1.path.components(separatedBy: "/").count > file2.path.components(separatedBy: "/").count
@@ -73,17 +129,23 @@ class MonitoringSessionManager: ObservableObject {
                     if fileManager.fileExists(atPath: file.path) {
                         try fileManager.removeItem(atPath: file.path)
                         deletedCount += 1
+                        self.logger.debug("Deleted: \(file.path)")
+                    } else {
+                        self.logger.debug("File not found (skipped): \(file.path)")
                     }
                 } catch {
-                    print("Error deleting file \(file.path): \(error)")
-                    lastError = error
+                    self.logger.error("Error deleting file \(file.path): \(error.localizedDescription)")
+                    failedFiles.append((path: file.path, error: error))
                 }
             }
             
             DispatchQueue.main.async {
-                if let error = lastError {
-                    completion(.failure(error))
+                if !failedFiles.isEmpty {
+                    let uninstallError = UninstallError(failedFiles: failedFiles, successCount: deletedCount)
+                    self.logger.warning("Uninstall completed with \(failedFiles.count) errors")
+                    completion(.failure(uninstallError))
                 } else {
+                    self.logger.info("Uninstall successful: \(deletedCount) files deleted")
                     self.deleteSession(session)
                     completion(.success(deletedCount))
                 }
@@ -92,17 +154,24 @@ class MonitoringSessionManager: ObservableObject {
     }
     
     private func handleFileChange(path: String, flags: FSEventStreamEventFlags) {
-        guard activeSession != nil else { return }
-        
         let isCreated = (flags & UInt32(kFSEventStreamEventFlagItemCreated)) != 0
         let isModified = (flags & UInt32(kFSEventStreamEventFlagItemModified)) != 0
         
         if isCreated || isModified {
-            fileChangeQueue.insert(path)
+            syncQueue.async { [weak self] in
+                guard let self = self, self.activeSession != nil else { return }
+                self.fileChangeQueue.insert(path)
+            }
         }
     }
     
     private func saveActiveSession() {
+        syncQueue.async { [weak self] in
+            self?.saveActiveSessionInternal()
+        }
+    }
+    
+    private func saveActiveSessionInternal() {
         guard var session = activeSession else { return }
         
         let newFiles = fileChangeQueue.compactMap { path -> MonitoredFile? in
@@ -122,15 +191,20 @@ class MonitoringSessionManager: ObservableObject {
             return MonitoredFile(path: path, size: size, type: fileType)
         }
         
+        guard !newFiles.isEmpty else { return }
+        
         session.monitoredFiles.append(contentsOf: newFiles)
         fileChangeQueue.removeAll()
         
-        if let index = sessions.firstIndex(where: { $0.id == session.id }) {
-            sessions[index] = session
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if let index = self.sessions.firstIndex(where: { $0.id == session.id }) {
+                self.sessions[index] = session
+            }
+            self.activeSession = session
+            self.saveSessions()
+            self.logger.debug("Saved \(newFiles.count) new files to active session")
         }
-        activeSession = session
-        
-        saveSessions()
     }
     
     private func determineFileType(path: String) -> MonitoredFile.FileType {

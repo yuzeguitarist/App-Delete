@@ -1,11 +1,30 @@
 import Foundation
 import CoreServices
+import os.log
+
+enum FSEventsError: Error, LocalizedError {
+    case failedToCreateStream
+    case failedToStartStream
+    case alreadyMonitoring
+    
+    var errorDescription: String? {
+        switch self {
+        case .failedToCreateStream:
+            return "Failed to create file system monitoring stream. Please check permissions."
+        case .failedToStartStream:
+            return "Failed to start file system monitoring. Please restart the application."
+        case .alreadyMonitoring:
+            return "Monitoring is already active."
+        }
+    }
+}
 
 class FSEventsMonitor {
     private var eventStream: FSEventStreamRef?
     private let monitoredPaths: [String]
     private var onFileChange: ((String, FSEventStreamEventFlags) -> Void)?
     private var isMonitoring = false
+    private let logger = Logger(subsystem: "com.deepuninstaller.app", category: "FSEventsMonitor")
     
     init() {
         let homeDirectory = FileManager.default.homeDirectoryForCurrentUser.path
@@ -21,8 +40,11 @@ class FSEventsMonitor {
         ]
     }
     
-    func startMonitoring(onChange: @escaping (String, FSEventStreamEventFlags) -> Void) {
-        guard !isMonitoring else { return }
+    func startMonitoring(onChange: @escaping (String, FSEventStreamEventFlags) -> Void) throws {
+        guard !isMonitoring else {
+            logger.error("Attempted to start monitoring while already active")
+            throw FSEventsError.alreadyMonitoring
+        }
         
         self.onFileChange = onChange
         
@@ -70,18 +92,22 @@ class FSEventsMonitor {
         )
         
         guard let stream = eventStream else {
-            print("Failed to create FSEventStream")
-            return
+            logger.error("Failed to create FSEventStream")
+            throw FSEventsError.failedToCreateStream
         }
         
         FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetCurrent(), CFRunLoopMode.defaultMode.rawValue)
         
-        if FSEventStreamStart(stream) {
-            isMonitoring = true
-            print("FSEvents monitoring started for paths: \(monitoredPaths)")
-        } else {
-            print("Failed to start FSEventStream")
+        guard FSEventStreamStart(stream) else {
+            logger.error("Failed to start FSEventStream")
+            FSEventStreamInvalidate(stream)
+            FSEventStreamRelease(stream)
+            eventStream = nil
+            throw FSEventsError.failedToStartStream
         }
+        
+        isMonitoring = true
+        logger.info("FSEvents monitoring started for \(self.monitoredPaths.count) paths")
     }
     
     func stopMonitoring() {
@@ -95,7 +121,7 @@ class FSEventsMonitor {
         isMonitoring = false
         onFileChange = nil
         
-        print("FSEvents monitoring stopped")
+        logger.info("FSEvents monitoring stopped")
     }
     
     private func shouldIncludePath(_ path: String) -> Bool {

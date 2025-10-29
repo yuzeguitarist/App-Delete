@@ -132,7 +132,11 @@ struct SessionDetailView: View {
                 uninstallResultMessage = "Successfully deleted \(count) files."
                 showingUninstallResult = true
             case .failure(let error):
-                uninstallResultMessage = "Error during uninstall: \(error.localizedDescription)"
+                if let uninstallError = error as? UninstallError {
+                    uninstallResultMessage = uninstallError.detailedDescription
+                } else {
+                    uninstallResultMessage = "Error during uninstall: \(error.localizedDescription)"
+                }
                 showingUninstallResult = true
             }
         }

@@ -18,6 +18,11 @@ let package = Package(
             name: "DeepUninstaller",
             dependencies: [],
             path: "Sources"
+        ),
+        .testTarget(
+            name: "DeepUninstallerTests",
+            dependencies: ["DeepUninstaller"],
+            path: "Tests"
         )
     ]
 )

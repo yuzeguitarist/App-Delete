@@ -5,6 +5,8 @@ struct NewSessionSheet: View {
     @Binding var isPresented: Bool
     @State private var sessionName = ""
     @State private var showingPermissionAlert = false
+    @State private var showingMonitoringError = false
+    @State private var monitoringErrorMessage = ""
     
     var body: some View {
         VStack(spacing: 20) {
@@ -86,14 +88,28 @@ struct NewSessionSheet: View {
         } message: {
             Text("For complete monitoring, this app needs Full Disk Access.\n\n1. Open System Settings > Privacy & Security > Full Disk Access\n2. Enable access for Deep Uninstaller\n3. Restart the app")
         }
+        .alert("Monitoring Failed", isPresented: $showingMonitoringError) {
+            Button("OK") {
+                showingMonitoringError = false
+            }
+        } message: {
+            Text(monitoringErrorMessage)
+        }
     }
     
     private func startMonitoring() {
         let trimmedName = sessionName.trimmingCharacters(in: .whitespaces)
         guard !trimmedName.isEmpty else { return }
         
-        sessionManager.startNewSession(name: trimmedName)
-        isPresented = false
+        sessionManager.startNewSession(name: trimmedName) { result in
+            switch result {
+            case .success:
+                isPresented = false
+            case .failure(let error):
+                monitoringErrorMessage = error.localizedDescription
+                showingMonitoringError = true
+            }
+        }
     }
     
     private func openSystemSettings() {

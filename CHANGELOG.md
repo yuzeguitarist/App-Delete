@@ -44,6 +44,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Comprehensive error handling for FSEvents initialization failures
+- Proper logging system using os.log framework
+- Complete unit test suite (70+ tests)
+  - MonitoringSessionManager tests
+  - StorageManager tests
+  - FSEventsMonitor tests
+  - Model tests (MonitoringSession, MonitoredFile)
+- Detailed error reporting for uninstall failures
+- Thread-safe session management with race condition prevention
+- FSEventsError enum with descriptive error messages
+
+### Fixed
+- Silent monitoring failure now displays user alert
+- Race condition between auto-save and session stop
+- Incomplete error reporting during batch file deletion
+- Data races in concurrent file change tracking
+
+### Improved
+- Error messages are now user-friendly and actionable
+- Uninstall errors show all failed files (up to 10) with details
+- Logging is structured, categorized, and persists to Console.app
+- Monitoring startup now properly propagates failures to UI
+
 ### Planned
 - Export/import monitoring sessions
 - CLI interface for automation
@@ -54,7 +78,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Statistical analysis dashboard
 - Integration with macOS Trash
 - Localization support
-- Unit and integration tests
 
 ### Under Consideration
 - System Integrity Protection (SIP) detection
