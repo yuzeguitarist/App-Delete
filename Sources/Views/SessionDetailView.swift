@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct SessionDetailView: View {
     @EnvironmentObject var sessionManager: MonitoringSessionManager
@@ -7,6 +8,9 @@ struct SessionDetailView: View {
     @State private var showingUninstallResult = false
     @State private var uninstallResultMessage = ""
     @State private var searchText = ""
+    @State private var moveToTrash = true
+    @State private var isUninstalling = false
+    @State private var uninstallProgress: UninstallProgress?
     
     var filteredFiles: [MonitoredFile] {
         if searchText.isEmpty {
@@ -43,11 +47,11 @@ struct SessionDetailView: View {
                 
                 Spacer()
                 
-                if !session.isActive {
+                if !session.isActive && !isUninstalling {
                     Button(action: {
                         showingUninstallConfirmation = true
                     }) {
-                        Label("Uninstall Completely", systemImage: "trash.fill")
+                        Label("Uninstall", systemImage: "trash.fill")
                             .font(.headline)
                     }
                     .buttonStyle(.borderedProminent)
@@ -56,6 +60,30 @@ struct SessionDetailView: View {
                 }
             }
             .padding()
+            
+            if isUninstalling, let progress = uninstallProgress {
+                VStack(spacing: 8) {
+                    ProgressView(value: progress.percentage) {
+                        HStack {
+                            Text("Uninstalling...")
+                                .font(.subheadline)
+                            Spacer()
+                            Text("\(progress.current) of \(progress.total)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Text(progress.currentFile)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+            }
             
             Divider()
             
@@ -97,6 +125,19 @@ struct SessionDetailView: View {
                                 Section(header: Text(fileType.displayName)) {
                                     ForEach(filesOfType) { file in
                                         FileRow(file: file)
+                                            .contextMenu {
+                                                Button(action: {
+                                                    copyToClipboard(file.path)
+                                                }) {
+                                                    Label("Copy Path", systemImage: "doc.on.doc")
+                                                }
+                                                
+                                                Button(action: {
+                                                    revealInFinder(file.path)
+                                                }) {
+                                                    Label("Reveal in Finder", systemImage: "folder")
+                                                }
+                                            }
                                     }
                                 }
                             }
@@ -107,16 +148,23 @@ struct SessionDetailView: View {
             }
         }
         .confirmationDialog(
-            "Are you sure you want to completely uninstall \(session.name)?",
+            "Uninstall \(session.name)",
             isPresented: $showingUninstallConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Uninstall and Delete All Files", role: .destructive) {
+            Button("Move to Trash (\(session.monitoredFiles.count) files)") {
+                moveToTrash = true
                 performUninstall()
             }
+            
+            Button("Delete Permanently", role: .destructive) {
+                moveToTrash = false
+                performUninstall()
+            }
+            
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This will permanently delete \(session.monitoredFiles.count) files (\(session.formattedSize)). This action cannot be undone.")
+            Text("This will remove \(session.formattedSize) of files. Moving to Trash is recommended for safety.")
         }
         .alert("Uninstall Result", isPresented: $showingUninstallResult) {
             Button("OK") {}
@@ -126,20 +174,44 @@ struct SessionDetailView: View {
     }
     
     private func performUninstall() {
-        sessionManager.uninstallSession(session) { result in
-            switch result {
-            case .success(let count):
-                uninstallResultMessage = "Successfully deleted \(count) files."
-                showingUninstallResult = true
-            case .failure(let error):
-                if let uninstallError = error as? UninstallError {
-                    uninstallResultMessage = uninstallError.detailedDescription
-                } else {
-                    uninstallResultMessage = "Error during uninstall: \(error.localizedDescription)"
+        isUninstalling = true
+        
+        sessionManager.uninstallSession(
+            session,
+            moveToTrash: moveToTrash,
+            progress: { progress in
+                uninstallProgress = progress
+            },
+            completion: { result in
+                isUninstalling = false
+                uninstallProgress = nil
+                
+                switch result {
+                case .success(let count):
+                    let action = moveToTrash ? "moved to Trash" : "deleted"
+                    uninstallResultMessage = "Successfully \(action) \(count) files."
+                    showingUninstallResult = true
+                case .failure(let error):
+                    if let uninstallError = error as? UninstallError {
+                        uninstallResultMessage = uninstallError.detailedDescription
+                    } else {
+                        uninstallResultMessage = "Error during uninstall: \(error.localizedDescription)"
+                    }
+                    showingUninstallResult = true
                 }
-                showingUninstallResult = true
             }
-        }
+        )
+    }
+    
+    private func copyToClipboard(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+    }
+    
+    private func revealInFinder(_ path: String) {
+        let url = URL(fileURLWithPath: path)
+        NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 }
 

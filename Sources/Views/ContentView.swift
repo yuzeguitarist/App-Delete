@@ -21,5 +21,10 @@ struct ContentView: View {
         .sheet(isPresented: $showNewSessionSheet) {
             NewSessionSheet(isPresented: $showNewSessionSheet)
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowNewSessionSheet"))) { _ in
+            if sessionManager.activeSession == nil {
+                showNewSessionSheet = true
+            }
+        }
     }
 }
