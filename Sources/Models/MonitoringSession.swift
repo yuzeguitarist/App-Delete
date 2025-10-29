@@ -1,6 +1,6 @@
 import Foundation
 
-struct MonitoringSession: Identifiable, Codable {
+struct MonitoringSession: Identifiable, Codable, Hashable {
     let id: UUID
     let name: String
     let startDate: Date

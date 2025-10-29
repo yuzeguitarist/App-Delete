@@ -27,21 +27,19 @@ struct NewSessionSheet: View {
                 Text("Application Name")
                     .font(.headline)
                 
-                ZStack {
-                    TextField("e.g., Cursor", text: $sessionName)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.title3)
-                    
-                    if sessionName.isEmpty {
+                TextField("e.g., Cursor", text: $sessionName)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.title3)
+                    .overlay(
                         RoundedRectangle(cornerRadius: 6)
                             .strokeBorder(isDragging ? Color.accentColor : Color.clear, lineWidth: 2)
-                            .background(isDragging ? Color.accentColor.opacity(0.05) : Color.clear)
-                            .cornerRadius(6)
+                            .allowsHitTesting(false)
+                    )
+                    .background(isDragging ? Color.accentColor.opacity(0.05) : Color.clear)
+                    .cornerRadius(6)
+                    .onDrop(of: [.fileURL], isTargeted: $isDragging) { providers in
+                        handleDrop(providers: providers)
                     }
-                }
-                .onDrop(of: [.fileURL], isTargeted: $isDragging) { providers in
-                    handleDrop(providers: providers)
-                }
                 
                 if sessionName.isEmpty {
                     Text("Drag an application here or type its name")
