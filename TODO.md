@@ -2,14 +2,14 @@
 
 ## High Priority (MVP Polish)
 
-- [ ] Add error handling for FSEvents initialization failures
-- [ ] Implement proper logging system (os_log)
-- [ ] Add unit tests for MonitoringSessionManager
-- [ ] Add unit tests for StorageManager
+- [x] Add error handling for FSEvents initialization failures
+- [x] Implement proper logging system (os_log)
+- [x] Add unit tests for MonitoringSessionManager
+- [x] Add unit tests for StorageManager
 - [ ] Test on macOS Ventura, Sonoma, and Sequoia
-- [ ] Handle edge case: monitoring stopped during file operations
+- [x] Handle edge case: monitoring stopped during file operations
 - [ ] Add progress indicator for file deletion
-- [ ] Improve error messages for common failures
+- [x] Improve error messages for common failures
 - [ ] Add app icon and assets
 
 ## Medium Priority (User Experience)
@@ -54,9 +54,9 @@
 
 ## Technical Debt
 
-- [ ] Add comprehensive error handling
-- [ ] Implement proper logging throughout
-- [ ] Add unit tests (coverage target: 70%+)
+- [x] Add comprehensive error handling
+- [x] Implement proper logging throughout
+- [x] Add unit tests (coverage target: 70%+)
 - [ ] Add UI tests for critical paths
 - [ ] Profile memory usage with Instruments
 - [ ] Optimize large file list rendering

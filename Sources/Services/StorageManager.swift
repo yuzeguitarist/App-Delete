@@ -1,7 +1,9 @@
 import Foundation
+import os.log
 
 class StorageManager {
     private let sessionsFileName = "monitoring_sessions.json"
+    private let logger = Logger(subsystem: "com.deepuninstaller.app", category: "StorageManager")
     
     private var sessionsFileURL: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -18,13 +20,15 @@ class StorageManager {
             encoder.dateEncodingStrategy = .iso8601
             let data = try encoder.encode(sessions)
             try data.write(to: sessionsFileURL)
+            logger.debug("Saved \(sessions.count) sessions to disk")
         } catch {
-            print("Error saving sessions: \(error)")
+            logger.error("Error saving sessions: \(error.localizedDescription)")
         }
     }
     
     func loadSessions() -> [MonitoringSession] {
         guard FileManager.default.fileExists(atPath: sessionsFileURL.path) else {
+            logger.info("No sessions file found, starting fresh")
             return []
         }
         
@@ -32,9 +36,11 @@ class StorageManager {
             let data = try Data(contentsOf: sessionsFileURL)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode([MonitoringSession].self, from: data)
+            let sessions = try decoder.decode([MonitoringSession].self, from: data)
+            logger.info("Loaded \(sessions.count) sessions from disk")
+            return sessions
         } catch {
-            print("Error loading sessions: \(error)")
+            logger.error("Error loading sessions: \(error.localizedDescription)")
             return []
         }
     }
