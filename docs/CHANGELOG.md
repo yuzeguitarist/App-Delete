@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Added - Core Stability
 - Comprehensive error handling for FSEvents initialization failures
 - Proper logging system using os.log framework
 - Complete unit test suite (70+ tests)
@@ -52,9 +52,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - StorageManager tests
   - FSEventsMonitor tests
   - Model tests (MonitoringSession, MonitoredFile)
+  - UI flow tests for critical user paths
 - Detailed error reporting for uninstall failures
 - Thread-safe session management with race condition prevention
 - FSEventsError enum with descriptive error messages
+
+### Added - User Experience Enhancements
+- **Trash Integration**: Files moved to Trash by default (safer than permanent deletion)
+- **Uninstall Progress Indicator**: Real-time progress with file count and current file display
+- **Drag-and-Drop Support**: Drag applications from Finder to start monitoring
+- **Right-Click Context Menu**: 
+  - Copy file path to clipboard
+  - Reveal file in Finder
+- **Keyboard Shortcuts**: Cmd+N for new session, standard macOS shortcuts
+- **Real-Time File Count**: Live display of file count and size during monitoring
+- User choice between "Move to Trash" and "Delete Permanently" in uninstall dialog
+
+### Added - Documentation
+- Organized all documentation into `/docs` folder
+- Comprehensive compatibility testing guide for macOS Ventura, Sonoma, Sequoia
+- UX improvements documentation with design rationale
+- Updated README with documentation links
 
 ### Fixed
 - Silent monitoring failure now displays user alert
@@ -67,6 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Uninstall errors show all failed files (up to 10) with details
 - Logging is structured, categorized, and persists to Console.app
 - Monitoring startup now properly propagates failures to UI
+- Button labels shortened for better visual balance ("Uninstall" vs "Uninstall Completely")
+- Confirmation dialogs follow Apple HIG with clear, concise messaging
 
 ### Planned
 - Export/import monitoring sessions
@@ -76,7 +96,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom directory monitoring
 - Regex-based file filtering
 - Statistical analysis dashboard
-- Integration with macOS Trash
+- File type icons in the list
+- Sorting options for file list
 - Localization support
 
 ### Under Consideration

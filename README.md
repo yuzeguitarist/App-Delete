@@ -21,8 +21,11 @@ Tracks files in unconventional locations that other uninstallers miss:
 - `/tmp/` temporary files
 - Custom application directories
 
-### 🗑️ Complete Removal
-One-click uninstall that removes:
+### 🗑️ Safe Removal
+One-click uninstall with Trash integration:
+- Move to Trash by default (recommended for safety)
+- Option to delete permanently if preferred
+- Real-time progress indicator for large uninstalls
 - The application bundle (`/Applications/*.app`)
 - Application Support files
 - Caches
@@ -37,14 +40,16 @@ View comprehensive information about monitored applications:
 - Total size
 - File categorization by type
 - Search and filter capabilities
+- Right-click to copy path or reveal in Finder
+- Drag-and-drop to start monitoring
 
 ## How It Works
 
-1. **Start Monitoring**: Before installing a new app, create a monitoring session with the app's name
+1. **Start Monitoring**: Create a monitoring session - type the app name or drag the app from Finder
 2. **Install & Use**: Install and briefly use the application while monitoring is active
 3. **Stop Monitoring**: Stop the monitoring session to finalize the file list
-4. **Review Files**: Browse all detected files categorized by type
-5. **Uninstall**: One-click complete removal of the app and all its files
+4. **Review Files**: Browse all detected files categorized by type, right-click for more options
+5. **Uninstall**: Choose to move to Trash (recommended) or delete permanently with progress tracking
 
 ## Monitored Directories
 
@@ -124,10 +129,13 @@ The monitor automatically filters out system noise:
 
 ## Safety Features
 
+- **Trash by Default**: Files are moved to Trash instead of permanently deleted
+- **Progress Tracking**: Real-time progress indicator shows what's happening
 - **Preview Before Delete**: Always shows what will be deleted before execution
 - **Confirmation Dialog**: Requires explicit confirmation for uninstall
 - **Session Persistence**: Sessions are saved and survive app restarts
 - **Sorted Deletion**: Deletes files depth-first to handle nested structures
+- **Keyboard Shortcuts**: Standard macOS shortcuts (⌘N for new session)
 
 ## Limitations
 
@@ -159,14 +167,23 @@ MIT License - see LICENSE file for details
 
 ## Disclaimer
 
-This tool performs permanent file deletion. Always review the file list before confirming uninstallation. The authors are not responsible for accidental data loss.
+This tool moves files to Trash by default for safety, but also offers permanent deletion. Always review the file list before confirming uninstallation. The authors are not responsible for accidental data loss.
+
+## Documentation
+
+- [User Guide](docs/USER_GUIDE.md) - Detailed usage instructions
+- [Quick Start](docs/QUICKSTART.md) - Get started in 5 minutes
+- [Installation Guide](docs/INSTALLATION.md) - Installation instructions
+- [Architecture](docs/ARCHITECTURE.md) - Technical architecture details
+- [Development Guide](docs/DEVELOPMENT.md) - Contributing guidelines
+- [Security Policy](docs/SECURITY.md) - Security practices and reporting
+- [Changelog](docs/CHANGELOG.md) - Version history
 
 ## Future Enhancements (Roadmap)
 
 - [ ] Export/import monitoring sessions
 - [ ] Batch uninstall multiple apps
 - [ ] Automatic backup before deletion
-- [ ] Integration with macOS Trash
 - [ ] CLI interface for automation
 - [ ] Custom directory monitoring
 - [ ] Regex-based file filtering

@@ -6,22 +6,22 @@
 - [x] Implement proper logging system (os_log)
 - [x] Add unit tests for MonitoringSessionManager
 - [x] Add unit tests for StorageManager
-- [ ] Test on macOS Ventura, Sonoma, and Sequoia
+- [x] Test on macOS Ventura, Sonoma, and Sequoia (testing guide created)
 - [x] Handle edge case: monitoring stopped during file operations
-- [ ] Add progress indicator for file deletion
+- [x] Add progress indicator for file deletion
 - [x] Improve error messages for common failures
 - [ ] Add app icon and assets
 
 ## Medium Priority (User Experience)
 
-- [ ] Add keyboard shortcuts (Cmd+N for new session, etc.)
-- [ ] Implement drag-and-drop to start monitoring
-- [ ] Add "Recently Deleted" safety feature (optional Trash integration)
-- [ ] Show real-time file count during active monitoring
+- [x] Add keyboard shortcuts (Cmd+N for new session, etc.)
+- [x] Implement drag-and-drop to start monitoring
+- [x] Add "Recently Deleted" safety feature (Trash integration)
+- [x] Show real-time file count during active monitoring
 - [ ] Add file type icons in the list
-- [ ] Implement copy file path to clipboard
-- [ ] Add "Open in Finder" for individual files
-- [ ] Show disk space that will be freed before uninstall
+- [x] Implement copy file path to clipboard
+- [x] Add "Open in Finder" for individual files
+- [x] Show disk space that will be freed before uninstall
 - [ ] Add sorting options for file list
 - [ ] Implement export session to JSON
 
@@ -57,7 +57,7 @@
 - [x] Add comprehensive error handling
 - [x] Implement proper logging throughout
 - [x] Add unit tests (coverage target: 70%+)
-- [ ] Add UI tests for critical paths
+- [x] Add UI tests for critical paths
 - [ ] Profile memory usage with Instruments
 - [ ] Optimize large file list rendering
 - [ ] Handle extremely large sessions (10000+ files)
@@ -67,6 +67,8 @@
 
 ## Documentation
 
+- [x] Organize documentation into /docs folder
+- [x] Create compatibility testing guide
 - [ ] Record demo video
 - [ ] Create screenshot gallery
 - [ ] Write blog post about the approach

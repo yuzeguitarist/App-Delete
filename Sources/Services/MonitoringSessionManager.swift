@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import AppKit
 import os.log
 
 struct UninstallError: Error, LocalizedError {
@@ -19,6 +20,17 @@ struct UninstallError: Error, LocalizedError {
             details += "... and \(failedFiles.count - 10) more files."
         }
         return details
+    }
+}
+
+struct UninstallProgress {
+    let current: Int
+    let total: Int
+    let currentFile: String
+    
+    var percentage: Double {
+        guard total > 0 else { return 0 }
+        return Double(current) / Double(total)
     }
 }
 
@@ -110,8 +122,11 @@ class MonitoringSessionManager: ObservableObject {
         saveSessions()
     }
     
-    func uninstallSession(_ session: MonitoringSession, completion: @escaping (Result<Int, Error>) -> Void) {
-        logger.info("Starting uninstall for session '\(session.name)' with \(session.monitoredFiles.count) files")
+    func uninstallSession(_ session: MonitoringSession, 
+                          moveToTrash: Bool = true,
+                          progress: ((UninstallProgress) -> Void)? = nil,
+                          completion: @escaping (Result<Int, Error>) -> Void) {
+        logger.info("Starting uninstall for session '\(session.name)' with \(session.monitoredFiles.count) files (moveToTrash: \(moveToTrash))")
         
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
@@ -123,11 +138,27 @@ class MonitoringSessionManager: ObservableObject {
                 file1.path.components(separatedBy: "/").count > file2.path.components(separatedBy: "/").count
             }
             
-            for file in sortedFiles {
+            let totalFiles = sortedFiles.count
+            
+            for (index, file) in sortedFiles.enumerated() {
+                let currentProgress = UninstallProgress(
+                    current: index + 1,
+                    total: totalFiles,
+                    currentFile: file.path
+                )
+                
+                DispatchQueue.main.async {
+                    progress?(currentProgress)
+                }
+                
                 do {
                     let fileManager = FileManager.default
                     if fileManager.fileExists(atPath: file.path) {
-                        try fileManager.removeItem(atPath: file.path)
+                        if moveToTrash {
+                            try self.moveToTrash(path: file.path)
+                        } else {
+                            try fileManager.removeItem(atPath: file.path)
+                        }
                         deletedCount += 1
                         self.logger.debug("Deleted: \(file.path)")
                     } else {
@@ -150,6 +181,21 @@ class MonitoringSessionManager: ObservableObject {
                     completion(.success(deletedCount))
                 }
             }
+        }
+    }
+    
+    private func moveToTrash(path: String) throws {
+        let url = URL(fileURLWithPath: path)
+        
+        if #available(macOS 11.0, *) {
+            try NSWorkspace.shared.recycle([url], completionHandler: { (urls, error) in
+                if let error = error {
+                    self.logger.error("Failed to move to trash: \(error.localizedDescription)")
+                }
+            })
+        } else {
+            let fileManager = FileManager.default
+            try fileManager.trashItem(at: url, resultingItemURL: nil)
         }
     }
     

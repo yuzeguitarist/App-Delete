@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct NewSessionSheet: View {
     @EnvironmentObject var sessionManager: MonitoringSessionManager
@@ -7,6 +8,7 @@ struct NewSessionSheet: View {
     @State private var showingPermissionAlert = false
     @State private var showingMonitoringError = false
     @State private var monitoringErrorMessage = ""
+    @State private var isDragging = false
     
     var body: some View {
         VStack(spacing: 20) {
@@ -25,9 +27,27 @@ struct NewSessionSheet: View {
                 Text("Application Name")
                     .font(.headline)
                 
-                TextField("e.g., Cursor", text: $sessionName)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.title3)
+                ZStack {
+                    TextField("e.g., Cursor", text: $sessionName)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.title3)
+                    
+                    if sessionName.isEmpty {
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(isDragging ? Color.accentColor : Color.clear, lineWidth: 2)
+                            .background(isDragging ? Color.accentColor.opacity(0.05) : Color.clear)
+                            .cornerRadius(6)
+                    }
+                }
+                .onDrop(of: [.fileURL], isTargeted: $isDragging) { providers in
+                    handleDrop(providers: providers)
+                }
+                
+                if sessionName.isEmpty {
+                    Text("Drag an application here or type its name")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             
             Divider()
@@ -115,5 +135,23 @@ struct NewSessionSheet: View {
     private func openSystemSettings() {
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!
         NSWorkspace.shared.open(url)
+    }
+    
+    private func handleDrop(providers: [NSItemProvider]) -> Bool {
+        guard let provider = providers.first else { return false }
+        
+        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, error in
+            guard let data = item as? Data,
+                  let url = URL(dataRepresentation: data, relativeTo: nil) else {
+                return
+            }
+            
+            DispatchQueue.main.async {
+                let appName = url.deletingPathExtension().lastPathComponent
+                sessionName = appName
+            }
+        }
+        
+        return true
     }
 }
