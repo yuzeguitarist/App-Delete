@@ -12,6 +12,14 @@ struct DeepUninstallerApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {}
+            
+            CommandGroup(after: .newItem) {
+                Button("New Monitoring Session") {
+                    NotificationCenter.default.post(name: NSNotification.Name("ShowNewSessionSheet"), object: nil)
+                }
+                .keyboardShortcut("n", modifiers: .command)
+                .disabled(sessionManager.activeSession != nil)
+            }
         }
     }
 }

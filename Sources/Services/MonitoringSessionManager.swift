@@ -188,11 +188,20 @@ class MonitoringSessionManager: ObservableObject {
         let url = URL(fileURLWithPath: path)
         
         if #available(macOS 11.0, *) {
-            try NSWorkspace.shared.recycle([url], completionHandler: { (urls, error) in
-                if let error = error {
-                    self.logger.error("Failed to move to trash: \(error.localizedDescription)")
-                }
-            })
+            var recycleError: Error?
+            let semaphore = DispatchSemaphore(value: 0)
+            
+            NSWorkspace.shared.recycle([url]) { (_, error) in
+                recycleError = error
+                semaphore.signal()
+            }
+            
+            semaphore.wait()
+            
+            if let error = recycleError {
+                self.logger.error("Failed to move to trash: \(error.localizedDescription)")
+                throw error
+            }
         } else {
             let fileManager = FileManager.default
             try fileManager.trashItem(at: url, resultingItemURL: nil)

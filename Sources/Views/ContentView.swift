@@ -21,15 +21,9 @@ struct ContentView: View {
         .sheet(isPresented: $showNewSessionSheet) {
             NewSessionSheet(isPresented: $showNewSessionSheet)
         }
-        .commands {
-            CommandGroup(after: .newItem) {
-                Button("New Monitoring Session") {
-                    if sessionManager.activeSession == nil {
-                        showNewSessionSheet = true
-                    }
-                }
-                .keyboardShortcut("n", modifiers: .command)
-                .disabled(sessionManager.activeSession != nil)
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowNewSessionSheet"))) { _ in
+            if sessionManager.activeSession == nil {
+                showNewSessionSheet = true
             }
         }
     }

@@ -143,7 +143,7 @@ final class UIFlowTests: XCTestCase {
             progress: { progress in
                 progressUpdates.append(progress)
             },
-            completion: { result in
+            completion: { _ in
                 progressExpectation.fulfill()
             }
         )
